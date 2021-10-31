@@ -14,7 +14,9 @@ def main():
 
 
         cv2.imshow("camera feed", bgr_image)
-        cv2.waitKey(0)
+        key_pressed = cv2.waitKey(10) & 0xFF
+        if key_pressed == 27:
+            break  # Quit on ESC
 
     print("all done")
 
