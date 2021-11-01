@@ -4,7 +4,7 @@ import sys
 
 def main():
 
-    face_detector = cv2.CascadeClassifier("data/haarcascade_frontalfacce_defualt.xml")
+    face_detector = cv2.CascadeClassifier("data/haarcascade_frontalfacce_default.xml")
     camera = cv2.VideoCapture(0)
 
     while True:
