@@ -4,6 +4,13 @@ import sys
 from PIL import Image
 from animation import Character, init_Character, generate_frame
 
+def detectEyes(image, cascade):
+    gray_image = cv2.cvtColor(image, cv2.BGR2GRAY)
+    eyes = cascade.detectMultiScale(gray_image)
+    for (ex,ey,ew,eh) in eyes:
+        cv2.rectangle(image,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+    return image
+
 def main():
 
     face_detector = cv2.CascadeClassifier("data/haarcascade_frontalfacce_default.xml")
