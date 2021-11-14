@@ -91,6 +91,18 @@ def init_Character():
     }
     return dict
 
+def convert_opencv(image):
+    numpy_image=np.array(image)  
+    opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_BGRA2RGBA)
+    return opencv_image
+
+def generate_frame(character, scale, attributes, images_array):
+    surface = Image.new('RGBA', (56, 80)) #creates the output image in Pillow library format
+    character.draw(surface, attributes)
+    surface = surface.resize((56*scale, 80*scale), resample=Image.BOX) 
+    opencv_image = convert_opencv(surface)
+    images_array.append(opencv_image)
+    return opencv_image
 
 # scale = 10
 # c = Character(dict)

@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import sys
 from PIL import Image
-from animation import Character, init_Character
+from animation import Character, init_Character, generate_frame
 
 def main():
 
@@ -13,6 +13,7 @@ def main():
     c  = Character(init_Character())
     scale = 10
     attributes = [0, 0, 0, 0, 0, 0]
+    images = []
 
     while True:
         got_image, bgr_image = camera.read()
@@ -32,16 +33,13 @@ def main():
         #choose sprties
             #edit the attrributes list
 
-        surface = Image.new('RGBA', (56, 80))
-        c.draw(surface, attributes)
-        surface = surface.resize((56*scale, 80*scale), resample=Image.BOX)
-        numpy_image=np.array(surface)  
-        opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_BGRA2RGBA) 
-        cv2.imwrite('output.png', opencv_image) 
-        cv2.imshow('output.png', opencv_image)
+        image = generate_frame(c, scale, attributes, images)
+        cv2.imshow("output.png", image)
         key_pressed = cv2.waitKey(10) & 0xFF
         if key_pressed == 27:
             break  # Quit on ESC
+
+    #after exiting while loop, read images in array and convert to video
 
     print("all done")
 
