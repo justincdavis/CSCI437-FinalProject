@@ -4,16 +4,21 @@ import sys
 from PIL import Image
 from animation import Character, init_Character, generate_frame
 
-def detectEyes(image, cascade):
+# Takes a bgr opencv image, the eye detector cascade, and an optional draw
+# If draw is false or not given, returns the eyes given by the cascade and the input image
+# If draw is true then the image has the eye bounding boxes drawn on it
+def detectEyes(image, cascade, draw=False):
     gray_image = cv2.cvtColor(image, cv2.BGR2GRAY)
     eyes = cascade.detectMultiScale(gray_image)
-    for (ex,ey,ew,eh) in eyes:
-        cv2.rectangle(image,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
-    return image
+    if(draw):
+        for (ex,ey,ew,eh) in eyes:
+            cv2.rectangle(image,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+    return eyes, image
 
 def main():
 
     face_detector = cv2.CascadeClassifier("data/haarcascade_frontalfacce_default.xml")
+    eye_detector = cv2.CascadeClassifier("data/haarcascade_eye.xml")
     camera = cv2.VideoCapture(0)
 
     #create variables for character and drawing the character
