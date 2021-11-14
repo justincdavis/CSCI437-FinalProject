@@ -52,8 +52,9 @@ class Spritesheet:
         layer = self.sheet.crop(self.cells[cellIndex])
         surface.paste(layer,coords,mask = layer)
 
-head = (11,-1)
-dict = {
+def init_Character():
+    head = (11,-1)
+    dict = {
         'filecount': 6,
         'asset': [
             'Head',
@@ -88,22 +89,24 @@ dict = {
             (0,0)
         ]
     }
+    return dict
 
-scale = 10
-c = Character(dict)
 
-# Generate Surface
-start = time.time()
-surface = Image.new('RGBA', (56, 80))
-c.draw(surface, [0,0,0,0,0,0])
-surface = surface.resize((56*scale, 80*scale), resample=Image.BOX) 
+# scale = 10
+# c = Character(dict)
 
-numpy_image=np.array(surface)  
-opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_BGRA2RGBA)
-end = time.time()
-print(end - start)
+# # Generate Surface
+# start = time.time()
+# surface = Image.new('RGBA', (56, 80))
+# c.draw(surface, [0,1,1,1,0,1])
+# surface = surface.resize((56*scale, 80*scale), resample=Image.BOX) 
 
-# Save File
-cv2.imwrite('my.png', opencv_image) 
-#filename = "Frames/Out" + str(0).zfill(6) + ".png"
-#surface.save(filename)
+# numpy_image=np.array(surface)  
+# opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_BGRA2RGBA)
+# end = time.time()
+# print(end - start)
+
+# # Save File
+# cv2.imwrite('my.png', opencv_image) 
+# #filename = "Frames/Out" + str(0).zfill(6) + ".png"
+# #surface.save(filename)
