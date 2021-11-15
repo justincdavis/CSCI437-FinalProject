@@ -28,14 +28,14 @@ def crop2Face(image, cascade, last_face):
     else:
         return None, None
 
-    #resize image
+def resizeFaceImage(face_image, scalePercent):
     scale_percent = 220  # percent of original size
     width = int(face_image.shape[1] * scale_percent / 100)
     height = int(face_image.shape[0] * scale_percent / 100)
     dim = (width, height)
 
-    resized = cv2.resize(face_iamge, dim, interpolation=cv2.INTER_AREA)
-    return resized, face
+    resized = cv2.resize(face_image, dim, interpolation=cv2.INTER_AREA)
+    return resized
 
 def main():
 
