@@ -18,7 +18,7 @@ def detectEyes(image, cascade, draw=False):
 def crop2Face(image, cascade, last_face):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     faces = cascade.detectMultiScale(gray_image)
-    if faces is not None:
+    if faces is not ():
         x = faces[0][0]
         y = faces[0][1]
         w = faces[0][2]
@@ -38,9 +38,10 @@ def resizeFaceImage(face_image, scale_percent):
 
 def main():
 
-    path = os.path.join(sys.path[0], "data/haarcascade_frontalface_default.xml")
-    face_detector = cv2.CascadeClassifier(path)
-    eye_detector = cv2.CascadeClassifier("data/haarcascade_eye.xml")
+    face_path = os.path.join(sys.path[0], "data/haarcascade_frontalface_default.xml")
+    face_detector = cv2.CascadeClassifier(face_path)
+    eye_path = os.path.join(sys.path[0], "data/haarcascade_eye.xml")
+    eye_detector = cv2.CascadeClassifier(eye_path)
     camera = cv2.VideoCapture(0)
 
     #create variables for character and drawing the character
