@@ -28,8 +28,7 @@ def crop2Face(image, cascade, last_face):
     else:
         return None, None
 
-def resizeFaceImage(face_image, scalePercent):
-    scale_percent = 220  # percent of original size
+def resizeFaceImage(face_image, scale_percent):
     width = int(face_image.shape[1] * scale_percent / 100)
     height = int(face_image.shape[0] * scale_percent / 100)
     dim = (width, height)
