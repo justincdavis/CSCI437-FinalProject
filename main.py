@@ -24,6 +24,7 @@ def main():
     #create variables for character and drawing the character
     c  = Character(init_Character())
     scale = 10
+    # max values: 0, 13,36,7, 0, 11
     attributes = [0, 0, 0, 0, 0, 0]
     images = []
 
