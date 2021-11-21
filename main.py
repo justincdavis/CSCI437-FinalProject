@@ -8,8 +8,8 @@ from animation import Character, init_Character, generate_frame
 # If draw is false or not given, returns the eyes given by the cascade and the input image
 # If draw is true then the image has the eye bounding boxes drawn on it
 def detectEyes(image, cascade, draw=False):
-    #gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    eyes = cascade.detectMultiScale(image)
+    gray_image = cv2.cvtColor(image, cv2.BGR2GRAY)
+    eyes = cascade.detectMultiScale(gray_image)
     if(draw):
         for (ex,ey,ew,eh) in eyes:
             cv2.rectangle(image,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
@@ -18,7 +18,7 @@ def detectEyes(image, cascade, draw=False):
 def crop2Face(image, cascade, last_face):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     faces = cascade.detectMultiScale(gray_image)
-    if faces is not None:
+    if faces is not ():
         x = faces[0][0]
         y = faces[0][1]
         w = faces[0][2]
@@ -28,14 +28,13 @@ def crop2Face(image, cascade, last_face):
     else:
         return None, None
 
-    #resize image
-    scale_percent = 250  # percent of original size
+def resizeFaceImage(face_image, scale_percent):
     width = int(face_image.shape[1] * scale_percent / 100)
     height = int(face_image.shape[0] * scale_percent / 100)
     dim = (width, height)
 
-    resized = cv2.resize(face_iamge, dim, interpolation=cv2.INTER_AREA)
-    return resized, face
+    resized = cv2.resize(face_image, dim, interpolation=cv2.INTER_AREA)
+    return resized
 
 def main():
 
@@ -48,6 +47,7 @@ def main():
     #create variables for character and drawing the character
     c  = Character(init_Character())
     scale = 10
+    # max values: 0, 13,36,7, 0, 11
     attributes = [0, 0, 0, 0, 0, 0]
     images = []
 
@@ -62,9 +62,16 @@ def main():
             cv2.imshow("test", face_image)
             cv2.imshow("camera feed", bgr_image)
             last_face = face
+            key_pressed = cv2.waitKey(10) & 0xFF
+            if key_pressed == 27:
+                break  # Quit on ESC
 
-            eyes, eye_image = detectEyes(face_image, eye_detector, draw=True)
-            #cv2.imshow("test", eye_image)
+            # identify faces
+
+            # fit bounding boxes
+
+            # choose sprties
+            # edit the attrributes list
 
             image = generate_frame(c, scale, attributes, images)
             cv2.imshow("output.png", image)
