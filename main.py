@@ -8,8 +8,8 @@ from animation import Character, init_Character, generate_frame
 # If draw is false or not given, returns the eyes given by the cascade and the input image
 # If draw is true then the image has the eye bounding boxes drawn on it
 def detectEyes(image, cascade, draw=False):
-    gray_image = cv2.cvtColor(image, cv2.BGR2GRAY)
-    eyes = cascade.detectMultiScale(gray_image)
+    #gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    eyes = cascade.detectMultiScale(image)
     if(draw):
         for (ex,ey,ew,eh) in eyes:
             cv2.rectangle(image,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
@@ -29,7 +29,7 @@ def crop2Face(image, cascade, last_face):
         return None, None
 
     #resize image
-    scale_percent = 220  # percent of original size
+    scale_percent = 250  # percent of original size
     width = int(face_image.shape[1] * scale_percent / 100)
     height = int(face_image.shape[0] * scale_percent / 100)
     dim = (width, height)
@@ -39,9 +39,10 @@ def crop2Face(image, cascade, last_face):
 
 def main():
 
-    path = os.path.join(sys.path[0], "data/haarcascade_frontalface_default.xml")
-    face_detector = cv2.CascadeClassifier(path)
-    eye_detector = cv2.CascadeClassifier("data/haarcascade_eye.xml")
+    face_path = os.path.join(sys.path[0], "data/haarcascade_frontalface_default.xml")
+    face_detector = cv2.CascadeClassifier(face_path)
+    eye_path = os.path.join(sys.path[0], "data/haarcascade_eye.xml")
+    eye_detector = cv2.CascadeClassifier(eye_path)
     camera = cv2.VideoCapture(0)
 
     #create variables for character and drawing the character
@@ -61,16 +62,9 @@ def main():
             cv2.imshow("test", face_image)
             cv2.imshow("camera feed", bgr_image)
             last_face = face
-            key_pressed = cv2.waitKey(10) & 0xFF
-            if key_pressed == 27:
-                break  # Quit on ESC
 
-            # identify faces
-
-            # fit bounding boxes
-
-            # choose sprties
-            # edit the attrributes list
+            eyes, eye_image = detectEyes(face_image, eye_detector, draw=True)
+            #cv2.imshow("test", eye_image)
 
             image = generate_frame(c, scale, attributes, images)
             cv2.imshow("output.png", image)
