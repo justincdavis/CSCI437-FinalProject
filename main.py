@@ -53,24 +53,25 @@ def findPossibleTargets(whiteBlobs, blackBlobs, threshold=2.0):
 
 # determines if a given point (x,y) is within the topleft, topright, botleft, botright quadrant of the image
 # top left is 0, top right is 1, bottom left is 2, bottom right is 3
-def determineQuadrant(image, point):
+def determineQuadrant(image, point, centerWidth):
+    x = point[0]
+    y = point[1]
     dim = image.shape
-    midY = dim[0] / 2
-    midX = dim[1] / 2
-    isLeft = True
-    isTop = False
-    if point[0] > midX:
-        isLeft = False
-    if point[1] > midY:
-        isTop = True
-    if isLeft and isTop:
-        return 0
-    if isLeft:
-        return 2
-    if isTop:
-        return 1
-    return 3
-
+    widthBound = (dim[0] - centerWidth) / 2
+    widthBound2 = widthBound + centerWidth
+    heightBound = (dim[1] - centerWidth) / 2
+    heightBound2 = widthBound + centerWidth
+    vertPose = 1
+    horzPose = 1
+    if x < widthBound:
+        horzPose = 0
+    elif x > widthBound2:
+        horzPose = 2
+    if y < heightBound:
+        vertPose = 0
+    elif y > heightBound2:
+        vertPose = 2
+    return horzPose + 3 * vertPose
 
 def classifyPupils(leftEye, rightEye, debug=False):
     # create a nxn square box filter
@@ -97,8 +98,8 @@ def classifyPupils(leftEye, rightEye, debug=False):
     bestRightTarget = possibleRightTargets[minRight]
 
     #determines the quadrant of each pupil
-    leftQuadrant = determineQuadrant(leftEye, bestLeftTarget)
-    rightQuadrant = determineQuadrant(rightEye, bestRightTarget)
+    leftQuadrant = determineQuadrant(leftEye, bestLeftTarget, 5)
+    rightQuadrant = determineQuadrant(rightEye, bestRightTarget, 5)
 
     if debug:
         print("Quadrants -> left: {}, right: {}".format(leftQuadrant, rightQuadrant))
