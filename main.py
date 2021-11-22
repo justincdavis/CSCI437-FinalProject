@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import sys, os
+import sys, os, time
 from PIL import Image
 from animation import Character, init_Character, generate_frame
 
@@ -8,7 +8,8 @@ from animation import Character, init_Character, generate_frame
 # If draw is false or not given, returns the eyes given by the cascade and the input image
 # If draw is true then the image has the eye bounding boxes drawn on it
 def detectEyes(image, cascade, draw=False):
-    gray_image = cv2.cvtColor(image, cv2.BGR2GRAY)
+    # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray_image = image
     eyes = cascade.detectMultiScale(gray_image)
     if(draw):
         for (ex,ey,ew,eh) in eyes:
@@ -83,7 +84,7 @@ def classifyPupils(leftEye, rightEye, debug=False):
     bestRightTarget = possibleRightTargets[minRight]
 
 
-def crop2Face(image, cascade, last_face):
+def crop2Face(image, cascade):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     faces = cascade.detectMultiScale(gray_image)
     if faces is not ():
@@ -135,6 +136,11 @@ def main():
     eye_path = os.path.join(sys.path[0], "data/haarcascade_eye.xml")
     eye_detector = cv2.CascadeClassifier(eye_path)
     camera = cv2.VideoCapture(0)
+    got_image, bgr_image = camera.read()
+    use_delay = False
+    if not got_image:
+        camera = cv2.VideoCapture("output.avi")
+        use_delay = True
 
     #create variables for character and drawing the character
     c  = Character(init_Character())
@@ -168,7 +174,8 @@ def main():
             key_pressed = cv2.waitKey(10) & 0xFF
             if key_pressed == 27:
                 break  # Quit on ESC
-
+            if use_delay:
+                time.sleep(.1)
 
 
     #after exiting while loop, read images in array and convert to video
