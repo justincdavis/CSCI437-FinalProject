@@ -141,6 +141,10 @@ def main():
     if not got_image:
         camera = cv2.VideoCapture("output.avi")
         use_delay = True
+    #image_height, image_width, _ = bgr_image.shape
+    #fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
+    #videoWriter = cv2.VideoWriter("output.avi", fourcc=fourcc, fps=20.0,
+                                  #frameSize=(image_width, image_height))
 
     #create variables for character and drawing the character
     c  = Character(init_Character())
@@ -154,10 +158,7 @@ def main():
         got_image, bgr_image = camera.read()
         if not got_image:
             sys.exit()
-        #image_height, image_width, _ = bgr_image.shape
-        #fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
-        #videoWriter = cv2.VideoWriter("output.avi", fourcc=fourcc, fps=20.0,
-                                        #frameSize=(image_width, image_height))
+
         face_image, face = crop2Face(bgr_image, face_detector)
         if face_image is not None and face is not None:
             #videoWriter.write(bgr_image)
@@ -181,6 +182,7 @@ def main():
     #after exiting while loop, read images in array and convert to video
 
     print("all done")
+    #videoWriter.release()
 
 
 if __name__ == "__main__":
