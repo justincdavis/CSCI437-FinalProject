@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import sys, os
-from PIL import Image
 from animation import Character, init_Character, generate_frame
 
 # Takes a bgr opencv image, the eye detector cascade, and an optional draw
@@ -15,10 +14,78 @@ def detectEyes(image, cascade, draw=False):
             cv2.rectangle(image,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
     return eyes, image
 
+# takes a bgrImage, a morphology kernel, and an optional parameter run
+# Transforms the image to binary using otsu method
+def binaryMorphology(eyeImage, kernel, run=True):
+    if(run):
+        _, binaryImg = cv2.threshold(eyeImage, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        filtered_img = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, kernel)
+        filtered_img = cv2.morphologyEx(filtered_img, cv2.MORPH_OPEN, kernel)
+        return filtered_img
+    return eyeImage
+
+# runs cv2.connectedComponentsWithStats
+# then inverts binary image and runs again
+# returns the actual components for normal and inverted
+def getConComps(eyeImage, connected=8):
+    # connected components for white blobs
+    bin_comps, output, stats, centroids = cv2.connectedComponentsWithStats(eyeImage, connected)
+    # connected components for former black blobs
+    inverted_img = cv2.bitwise_not(eyeImage)
+    i_bin_comps, i_output, i_stats, i_centroids = cv2.connectedComponentsWithStats(inverted_img, connected)
+    return bin_comps, i_bin_comps
+
+# takes the connected components for normal and inverted image, with optional parameter threshold
+def findPossibleTargets(whiteBlobs, blackBlobs, threshold=2.0):
+    possibleTargets = {}
+    minDist = sys.maxint
+    for white_point in whiteBlobs:
+        for black_point in blackBlobs:
+            dist = cv2.norm(white_point - black_point, cv2.NORM_L2)
+            if (dist < threshold):
+                possibleTargets[dist] = white_point
+            if (dist < minDist):
+                minDist = dist
+    return possibleTargets, minDist
+
+# determines if a given point (x,y) is within the topleft, topright, botleft, botright quadrant of the image
+def determineQuadrant(image, point):
+    height, width, _ = image.shape
+    midY = height / 2
+    midX = width / 2
+
+
+def classifyPupils(leftEye, rightEye, debug=False):
+    # create a nxn square box filter
+    n = 2
+    kernel = np.ones((n, n), np.uint8)
+    # compute the binary images and perform morphology, run is optional parameter. Skip morphology if run = False
+    binaryLeft = binaryMorphology(leftEye, kernel, run=True)
+    binaryRight = binaryMorphology(rightEye, kernel, run=True)
+
+    if debug: # show the binary images if debug mode is on
+        cv2.imshow("binaryLeft", binaryLeft)
+        cv2.imshow("binaryRight", binaryRight)
+
+    # compute where the connected components are
+    leftWhite, leftBlack = getConComps(binaryLeft, connected=8)
+    rightWhite, rightBlack = getConComps(binaryRight, connected=8)
+
+    # compute where two points match within a given threshold and return them as a possible target
+    possibleLeftTargets, minLeft = findPossibleTargets(leftWhite, leftBlack, threshold=2.0)
+    possibleRightTargets, minRight = findPossibleTargets(rightWhite, rightBlack, threshold=2.0)
+
+    # get the smallest distance as our best option for the pupil
+    bestLeftTarget = possibleLeftTargets[minLeft]
+    bestRightTarget = possibleRightTargets[minRight]
+
+
+
+
 def crop2Face(image, cascade, last_face):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     faces = cascade.detectMultiScale(gray_image)
-    if faces is not ():
+    if faces != ():
         x = faces[0][0]
         y = faces[0][1]
         w = faces[0][2]
@@ -45,7 +112,7 @@ def main():
     camera = cv2.VideoCapture(0)
 
     #create variables for character and drawing the character
-    c  = Character(init_Character())
+    c = Character(init_Character())
     scale = 10
     # max values: 0, 13,36,7, 0, 11
     attributes = [0, 0, 0, 0, 0, 0]
