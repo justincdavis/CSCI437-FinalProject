@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import sys, os
+from PIL import Image
 from animation import Character, init_Character, generate_frame
 
 # Takes a bgr opencv image, the eye detector cascade, and an optional draw
@@ -13,6 +14,7 @@ def detectEyes(image, cascade, draw=False):
         for (ex,ey,ew,eh) in eyes:
             cv2.rectangle(image,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
     return eyes, image
+
 
 # takes a bgrImage, a morphology kernel, and an optional parameter run
 # Transforms the image to binary using otsu method
@@ -55,6 +57,7 @@ def determineQuadrant(image, point):
     midX = width / 2
 
 
+
 def classifyPupils(leftEye, rightEye, debug=False):
     # create a nxn square box filter
     n = 2
@@ -80,18 +83,39 @@ def classifyPupils(leftEye, rightEye, debug=False):
     bestRightTarget = possibleRightTargets[minRight]
 
 
-
-
 def crop2Face(image, cascade, last_face):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     faces = cascade.detectMultiScale(gray_image)
-    if faces != ():
+    if faces is not ():
         x = faces[0][0]
         y = faces[0][1]
         w = faces[0][2]
         h = faces[0][3]
         face_image = gray_image[y:y+h, x:x+w]
         return face_image, faces
+    else:
+        return None, None
+
+def crop2Eyes(image, eyes):
+    height, width = image.shape
+    if eyes is not ():
+        left_eye, right_eye = np.zeros_like(eyes[0]), np.zeros_like(eyes[0])
+        i = 0
+        for eye in eyes:
+            x = eye[0]
+            y = eye[1]
+            w = eye[2]
+            h = eye[3]
+            if i < 2:
+                if x > width/2:
+                    right_eye = image[y:y + h, x:x + w]
+                if x <= width/2:
+                    left_eye = image[y:y + h, x:x + w]
+            i += 1
+        if np.sum(right_eye) == 0 or np.sum(left_eye) == 0:
+            right_eye, left_eye = image, image
+            print("Error detecting eyes. \n")
+        return left_eye, right_eye
     else:
         return None, None
 
@@ -105,6 +129,7 @@ def resizeFaceImage(face_image, scale_percent):
 
 def main():
 
+    #Initialize paths for haarcascade detection
     face_path = os.path.join(sys.path[0], "data/haarcascade_frontalface_default.xml")
     face_detector = cv2.CascadeClassifier(face_path)
     eye_path = os.path.join(sys.path[0], "data/haarcascade_eye.xml")
@@ -112,7 +137,7 @@ def main():
     camera = cv2.VideoCapture(0)
 
     #create variables for character and drawing the character
-    c = Character(init_Character())
+    c  = Character(init_Character())
     scale = 10
     # max values: 0, 13,36,7, 0, 11
     attributes = [0, 0, 0, 0, 0, 0]
@@ -123,25 +148,23 @@ def main():
         got_image, bgr_image = camera.read()
         if not got_image:
             sys.exit()
-
-        face_image, face = crop2Face(bgr_image, face_detector, last_face)
+        #image_height, image_width, _ = bgr_image.shape
+        #fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
+        #videoWriter = cv2.VideoWriter("output.avi", fourcc=fourcc, fps=20.0,
+                                        #frameSize=(image_width, image_height))
+        face_image, face = crop2Face(bgr_image, face_detector)
         if face_image is not None and face is not None:
-            cv2.imshow("test", face_image)
-            cv2.imshow("camera feed", bgr_image)
-            last_face = face
-            key_pressed = cv2.waitKey(10) & 0xFF
-            if key_pressed == 27:
-                break  # Quit on ESC
+            #videoWriter.write(bgr_image)
+            eyes, eye_image = detectEyes(face_image, eye_detector, draw=True)
+            right_eye, left_eye = crop2Eyes(eye_image, eyes)
+            if right_eye is not None and left_eye is not None:
+                image = generate_frame(c, scale, attributes, images)
 
-            # identify faces
+                cv2.imshow("output.png", image)
+                cv2.imshow("camera feed", bgr_image)
+                cv2.imshow("testR", right_eye)
+                cv2.imshow("testL", left_eye)
 
-            # fit bounding boxes
-
-            # choose sprties
-            # edit the attrributes list
-
-            image = generate_frame(c, scale, attributes, images)
-            cv2.imshow("output.png", image)
             key_pressed = cv2.waitKey(10) & 0xFF
             if key_pressed == 27:
                 break  # Quit on ESC
