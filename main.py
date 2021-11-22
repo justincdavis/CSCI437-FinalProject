@@ -47,13 +47,13 @@ def findPossibleTargets(whiteBlobs, blackBlobs, threshold=2.0):
             dist = cv2.norm(white_point - black_point, cv2.NORM_L2)
             if (dist < threshold):
                 possibleTargets[dist] = white_point
-            if (dist < minDist):
-                minDist = dist
+                if (dist < minDist):
+                    minDist = dist
     return possibleTargets, minDist
 
 # determines if a given point (x,y) is within the topleft, topright, botleft, botright quadrant of the image
 # top left is 0, top right is 1, bottom left is 2, bottom right is 3
-def determineQuadrant(image, point, centerWidth):
+def determineQuadrant(image, point, centerWidth=7):
     x = point[0]
     y = point[1]
     dim = image.shape
@@ -74,37 +74,41 @@ def determineQuadrant(image, point, centerWidth):
     return horzPose + 3 * vertPose
 
 def classifyPupils(leftEye, rightEye, debug=False):
-    # create a nxn square box filter
-    n = 2
-    kernel = np.ones((n, n), np.uint8)
-    # compute the binary images and perform morphology, run is optional parameter. Skip morphology if run = False
-    binaryLeft = binaryMorphology(leftEye, kernel, run=True)
-    binaryRight = binaryMorphology(rightEye, kernel, run=True)
+    try:
+        # create a nxn square box filter
+        n = 2
+        kernel = np.ones((n, n), np.uint8)
+        # compute the binary images and perform morphology, run is optional parameter. Skip morphology if run = False
+        binaryLeft = binaryMorphology(leftEye, kernel, run=True)
+        binaryRight = binaryMorphology(rightEye, kernel, run=True)
 
-    if debug: # show the binary images if debug mode is on
-        cv2.imshow("binaryLeft", binaryLeft)
-        cv2.imshow("binaryRight", binaryRight)
+        if debug: # show the binary images if debug mode is on
+            cv2.imshow("binaryLeft", binaryLeft)
+            cv2.imshow("binaryRight", binaryRight)
 
-    # compute where the connected components are
-    leftWhite, leftBlack = getConComps(binaryLeft, connected=8)
-    rightWhite, rightBlack = getConComps(binaryRight, connected=8)
+        # compute where the connected components are
+        leftWhite, leftBlack = getConComps(binaryLeft, connected=8)
+        rightWhite, rightBlack = getConComps(binaryRight, connected=8)
 
-    # compute where two points match within a given threshold and return them as a possible target
-    possibleLeftTargets, minLeft = findPossibleTargets(leftWhite, leftBlack, threshold=2.0)
-    possibleRightTargets, minRight = findPossibleTargets(rightWhite, rightBlack, threshold=2.0)
+        # compute where two points match within a given threshold and return them as a possible target
+        possibleLeftTargets, minLeft = findPossibleTargets(leftWhite, leftBlack, threshold=2.0)
+        possibleRightTargets, minRight = findPossibleTargets(rightWhite, rightBlack, threshold=2.0)
 
-    # get the smallest distance as our best option for the pupil
-    bestLeftTarget = possibleLeftTargets[minLeft]
-    bestRightTarget = possibleRightTargets[minRight]
+        # get the smallest distance as our best option for the pupil
+        bestLeftTarget = possibleLeftTargets[minLeft]
+        bestRightTarget = possibleRightTargets[minRight]
 
-    #determines the quadrant of each pupil
-    leftQuadrant = determineQuadrant(leftEye, bestLeftTarget, 5)
-    rightQuadrant = determineQuadrant(rightEye, bestRightTarget, 5)
+        #determines the quadrant of each pupil
+        centerWidth = 15
+        leftQuadrant = determineQuadrant(leftEye, bestLeftTarget, centerWidth=centerWidth)
+        rightQuadrant = determineQuadrant(rightEye, bestRightTarget, centerWidth=centerWidth)
 
-    if debug:
-        print("Quadrants -> left: {}, right: {}".format(leftQuadrant, rightQuadrant))
+        if debug:
+            print("Quadrants -> left: {}, right: {}".format(leftQuadrant, rightQuadrant))
 
-    return (leftQuadrant, rightQuadrant)
+        return (leftQuadrant, rightQuadrant)
+    except:
+        return (4, 4)
 
 def crop2Face(image, cascade):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -163,10 +167,10 @@ def main():
     if not got_image:
         camera = cv2.VideoCapture("output.avi")
         use_delay = True
-    image_height, image_width, _ = bgr_image.shape
-    fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
-    videoWriter = cv2.VideoWriter("output.avi", fourcc=fourcc, fps=20.0,
-                                  frameSize=(image_width, image_height))
+    # image_height, image_width, _ = bgr_image.shape
+    # fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
+    # videoWriter = cv2.VideoWriter("output.avi", fourcc=fourcc, fps=20.0,
+    #                               frameSize=(image_width, image_height))
 
     #create variables for character and drawing the character
     c = Character(init_Character())
@@ -183,7 +187,7 @@ def main():
 
         face_image, face = crop2Face(bgr_image, face_detector)
         if face_image is not None and face is not None:
-            videoWriter.write(bgr_image)
+            # videoWriter.write(bgr_image)
             eyes, eye_image = detectEyes(face_image, eye_detector, draw=True)
             right_eye, left_eye = crop2Eyes(eye_image, eyes)
             if right_eye is not None and left_eye is not None:
@@ -207,7 +211,7 @@ def main():
     #after exiting while loop, read images in array and convert to video
 
     print("all done")
-    videoWriter.release()
+    # videoWriter.release()
 
 
 if __name__ == "__main__":
