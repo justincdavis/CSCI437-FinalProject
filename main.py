@@ -36,12 +36,12 @@ def getConComps(eyeImage, connected=8):
     # connected components for former black blobs
     inverted_img = cv2.bitwise_not(eyeImage)
     i_bin_comps, i_output, i_stats, i_centroids = cv2.connectedComponentsWithStats(inverted_img, connected)
-    return bin_comps, i_bin_comps
+    return centroids, i_centroids
 
 # takes the connected components for normal and inverted image, with optional parameter threshold
 def findPossibleTargets(whiteBlobs, blackBlobs, threshold=2.0):
     possibleTargets = {}
-    minDist = sys.maxint
+    minDist = 999999
     for white_point in whiteBlobs:
         for black_point in blackBlobs:
             dist = cv2.norm(white_point - black_point, cv2.NORM_L2)
@@ -52,11 +52,24 @@ def findPossibleTargets(whiteBlobs, blackBlobs, threshold=2.0):
     return possibleTargets, minDist
 
 # determines if a given point (x,y) is within the topleft, topright, botleft, botright quadrant of the image
+# top left is 0, top right is 1, bottom left is 2, bottom right is 3
 def determineQuadrant(image, point):
-    height, width, _ = image.shape
-    midY = height / 2
-    midX = width / 2
-
+    dim = image.shape
+    midY = dim[0] / 2
+    midX = dim[1] / 2
+    isLeft = True
+    isTop = False
+    if point[0] > midX:
+        isLeft = False
+    if point[1] > midY:
+        isTop = True
+    if isLeft and isTop:
+        return 0
+    if isLeft:
+        return 2
+    if isTop:
+        return 1
+    return 3
 
 
 def classifyPupils(leftEye, rightEye, debug=False):
@@ -83,6 +96,14 @@ def classifyPupils(leftEye, rightEye, debug=False):
     bestLeftTarget = possibleLeftTargets[minLeft]
     bestRightTarget = possibleRightTargets[minRight]
 
+    #determines the quadrant of each pupil
+    leftQuadrant = determineQuadrant(leftEye, bestLeftTarget)
+    rightQuadrant = determineQuadrant(rightEye, bestRightTarget)
+
+    if debug:
+        print("Quadrants -> left: {}, right: {}".format(leftQuadrant, rightQuadrant))
+
+    return (leftQuadrant, rightQuadrant)
 
 def crop2Face(image, cascade):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -115,7 +136,7 @@ def crop2Eyes(image, eyes):
             i += 1
         if np.sum(right_eye) == 0 or np.sum(left_eye) == 0:
             right_eye, left_eye = image, image
-            print("Error detecting eyes. \n")
+            print("No eyes detected!")
         return left_eye, right_eye
     else:
         return None, None
@@ -171,6 +192,9 @@ def main():
                 cv2.imshow("camera feed", bgr_image)
                 cv2.imshow("testR", right_eye)
                 cv2.imshow("testL", left_eye)
+
+                # this is where classify pupils will go
+                eyeQuads = classifyPupils(left_eye, right_eye, debug=True)
 
             key_pressed = cv2.waitKey(10) & 0xFF
             if key_pressed == 27:
