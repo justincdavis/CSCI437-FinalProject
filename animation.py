@@ -104,6 +104,10 @@ def generate_frame(character, scale, attributes, images_array):
     images_array.append(opencv_image)
     return opencv_image
 
+def get_pupil_pos(quadrent):
+    quadrent_conversion = [4,3,5,1,7,0,6,2,8]
+    return quadrent_conversion[quadrent]
+
 # scale = 10
 # c = Character(dict)
 
