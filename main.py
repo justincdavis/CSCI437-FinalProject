@@ -174,7 +174,7 @@ def main():
     eye_detector = cv2.CascadeClassifier(eye_path)
 
     # camera to videocapture from webcam
-    camera = cv2.VideoCapture(1)    
+    camera = cv2.VideoCapture(0)
     got_image, bgr_image = camera.read()
     use_delay = False
     if not got_image:
@@ -252,7 +252,8 @@ def main():
                 cv2.imshow("morph left eye", binaryLeft)
                 cv2.imshow("morph right eye", binaryRight)
                 # bleye_videoWriter.write(binaryLeft)
-                breye_videoWriter.write(binaryRight)
+                breye_img = cv2.cvtColor(binaryRight, cv2.COLOR_GRAY2BGR)
+                breye_videoWriter.write(breye_img)
 
                 # compute where the connected components are
                 rightWhite, rightBlack = getConComps(binaryRight, connected=8)
