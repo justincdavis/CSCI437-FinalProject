@@ -174,7 +174,7 @@ def main():
     eye_detector = cv2.CascadeClassifier(eye_path)
 
     # camera to videocapture from webcam
-    camera = cv2.VideoCapture(0)
+    camera = cv2.VideoCapture(1)
     got_image, bgr_image = camera.read()
     use_delay = False
     if not got_image:
@@ -183,30 +183,35 @@ def main():
 
     image_height, image_width, _ = bgr_image.shape
 
-    # fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-    # video_path = os.path.join(sys.path[0], "face.avi")
-    # face_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
-    #                               frameSize=(image_width, image_height))
+    fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
+    video_path = os.path.join(sys.path[0], "face.avi")
+    face_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
+                                  frameSize=(image_width, image_height))
 
     fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
     video_path = os.path.join(sys.path[0], "reye.avi")
     reye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
                                   frameSize=(image_width, image_height))
 
-    # fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-    # video_path = os.path.join(sys.path[0], "leye.avi")
-    # leye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
-    #                               frameSize=(image_width, image_height))
+    fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
+    video_path = os.path.join(sys.path[0], "leye.avi")
+    leye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
+                                  frameSize=(image_width, image_height))
 
     fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
     video_path = os.path.join(sys.path[0], "breye.avi")
     breye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
                                   frameSize=(image_width, image_height))
 
-    # fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-    # video_path = os.path.join(sys.path[0], "bleye.avi")
-    # bleye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
-    #                               frameSize=(image_width, image_height))
+    fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
+    video_path = os.path.join(sys.path[0], "bleye.avi")
+    bleye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
+                                  frameSize=(image_width, image_height))
+
+    fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
+    video_path = os.path.join(sys.path[0], "character.avi")
+    character_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
+                                  frameSize=(int(image_width/2), image_height))
 
     # create character object and variables for drawing the character
     c = Character(init_Character())
@@ -216,13 +221,14 @@ def main():
     images = []
 
     last_face = None
+    lasteye = 4
     while True:
         got_image, bgr_image = camera.read()
         if not got_image:
             sys.exit()
 
         cv2.imshow("camera feed", bgr_image)
-
+        
         face_image, faces = crop2Face(bgr_image, face_detector)
         if face_image is not None and faces is not None:
             
@@ -241,8 +247,9 @@ def main():
             cv2.imshow("left eye", left_eye)
             cv2.imshow("right eye", right_eye)
 
-            if right_eye is not None and left_eye is not None:                
-                # face_videoWriter.write(face_image)
+            if right_eye is not None and left_eye is not None:       
+                face_image = cv2.resize(face_image, (image_width, image_height), interpolation= cv2.INTER_CUBIC)
+                face_videoWriter.write(face_image)
                 n = 8
                 kernel = np.ones((n, n), np.uint8)
                 # compute the binary images and perform morphology, run is optional parameter. Skip morphology if run = False
@@ -251,7 +258,8 @@ def main():
                
                 cv2.imshow("morph left eye", binaryLeft)
                 cv2.imshow("morph right eye", binaryRight)
-                # bleye_videoWriter.write(binaryLeft)
+                bleye_img = cv2.cvtColor(binaryLeft, cv2.COLOR_GRAY2BGR)
+                bleye_videoWriter.write(bleye_img)
                 breye_img = cv2.cvtColor(binaryRight, cv2.COLOR_GRAY2BGR)
                 breye_videoWriter.write(breye_img)
 
@@ -277,33 +285,34 @@ def main():
                 # cv2.putText(right_eye, str(eyeQuads[0]), (20, 55), color=(0, 0, 255, 255),
                 #             fontFace=1,  fontScale=5.5, thickness=2)
 
-                cv2.line(right_eye, (0, int(image_height*11/32)), (int(image_width), int(image_height*11/32)), (0, 0, 255, 255), 1)
+                cv2.line(right_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
                
                 cv2.line(right_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
-                cv2.line(right_eye, (int(image_width*9/16), int(0)), (int(image_width*9/16), int(image_height)), (0, 0, 255, 255), 1)
+                cv2.line(right_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
 
 
-                cv2.line(left_eye, (0, int(image_height*11/32)), (int(image_width), int(image_height*11/32)), (0, 0, 255, 255), 1)
+                cv2.line(left_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
                
-                cv2.line(left_eye, (int(image_width*17/32), int(0)), (int(image_width*17/32), int(image_height)), (0, 0, 255, 255), 1)
-                cv2.line(left_eye, (int(image_width*7/16), int(0)), (int(image_width*7/16), int(image_height)), (0, 0, 255, 255), 1)
+                cv2.line(left_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
+                cv2.line(left_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
 
-                eye_sect = 4
-                if (possibleRightTarget[1] < image_height*11/32):
-                    if (possibleRightTarget[0] < image_width*15/32):
+                eye_sect = lasteye
+                if (possibleLeftTarget[1] < image_height*13/32):
+                    if (possibleLeftTarget[0] < image_width*15/32):
                         eye_sect = 0
-                    elif (possibleRightTarget[0] > image_width*9/16):
+                    elif (possibleLeftTarget[0] > image_width*10/16):
                         eye_sect = 2
                     else:
                         eye_sect = 1
                 else:
-                    if (possibleRightTarget[0] < image_width*15/32):
+                    if (possibleLeftTarget[0] < image_width*15/32):
                         eye_sect = 3
-                    elif (possibleRightTarget[0] > image_width*9/16):
+                    elif (possibleLeftTarget[0] > image_width*10/16):
                         eye_sect = 5
                     else:
                         eye_sect = 4
 
+                lasteye = eye_sect
                 attributes[2] = get_pupil_pos(eye_sect)
                 image = generate_frame(c, scale, attributes, images)
 
@@ -312,8 +321,12 @@ def main():
                 
                 cv2.imshow("testR", right_eye)
                 cv2.imshow("testL", left_eye)
-                 #leye_videoWriter.write(left_eye)
+                leye_videoWriter.write(left_eye)
                 reye_videoWriter.write(right_eye)
+
+                # image_width, image_height, _ = image.shape
+                image = cv2.resize(image, (int(image_width/2), image_height), interpolation= cv2.INTER_CUBIC)
+                character_videoWriter.write(image)
 
 
             key_pressed = cv2.waitKey(10) & 0xFF
@@ -326,11 +339,12 @@ def main():
     #after exiting while loop, read images in array and convert to video
 
     print("all done")
-    # face_videoWriter.release()
+    face_videoWriter.release()
     reye_videoWriter.release()
-    # leye_videoWriter.release()
+    leye_videoWriter.release()
     breye_videoWriter.release()
-    # bleye_videoWriter.release()
+    bleye_videoWriter.release()
+    character_videoWriter.release()
 
 
 if __name__ == "__main__":
