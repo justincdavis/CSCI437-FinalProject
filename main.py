@@ -49,7 +49,7 @@ def findTargets(blackBlobs, threshold=2.0):
 # top left is 0, top right is 1, bottom left is 2, bottom right is 3
 
 # takes in targets and returrns the region of the pupil
-def classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, last_eye):
+def classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, last_eye, numLeft, numRight):
     image_height, image_width, _ = left_eye.shape
     # simply draw circles on the possible detected pupils
     # TODO: remove issue of findTargets returning NaN instead of None
@@ -67,30 +67,36 @@ def classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, 
     # draw funny little lines on right eye (for classification regions)
     # TODO: integrate into function with actual region definition
     cv2.line(right_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
-    
+
     cv2.line(right_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
     cv2.line(right_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
 
     # draw funny little lines on left eye (for classification regions)
     cv2.line(left_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
-    
+
     cv2.line(left_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
     cv2.line(left_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
 
     # classification region
     # TODO: integrate into function with drawn lines
+    print(numRight, " ", numLeft)
+    if numRight > numLeft:
+        bestTarget = possibleRightTarget
+    else:
+        bestTarget = possibleLeftTarget
+
     eye_sect = last_eye
-    if (possibleLeftTarget[1] < image_height*13/32):
-        if (possibleLeftTarget[0] < image_width*15/32):
+    if (bestTarget[1] < image_height*13/32):
+        if (bestTarget[0] < image_width*15/32):
             eye_sect = 0
-        elif (possibleLeftTarget[0] > image_width*10/16):
+        elif (bestTarget[0] > image_width*10/16):
             eye_sect = 2
         else:
             eye_sect = 1
     else:
-        if (possibleLeftTarget[0] < image_width*15/32):
+        if (bestTarget[0] < image_width*15/32):
             eye_sect = 3
-        elif (possibleLeftTarget[0] > image_width*10/16):
+        elif (bestTarget[0] > image_width*10/16):
             eye_sect = 5
         else:
             eye_sect = 4
@@ -150,7 +156,7 @@ def main():
     eye_detector = cv2.CascadeClassifier(eye_path)
 
     # camera to videocapture from webcam
-    camera = cv2.VideoCapture(0)
+    camera = cv2.VideoCapture(1)
     got_image, bgr_image = camera.read()
     use_delay = False
     # if no webcam detected (also maybe add command line option) then use video input instead
@@ -250,13 +256,14 @@ def main():
                 # compute where the connected components are
                 rightWhite = cv2.connectedComponentsWithStats(binaryRight, connectivity=8)
                 leftWhite = cv2.connectedComponentsWithStats(binaryLeft, connectivity=8)
+                numLeft, numRight = rightWhite[0], leftWhite[0]
 
                 # compute where two points match within a given threshold and return them as a possible target
                 possibleRightTarget = findTargets(rightWhite, threshold=2.0)
                 possibleLeftTarget = findTargets(leftWhite, threshold=2.0)
 
 
-                eye_sect, right_eye, left_eye = classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, last_eye)
+                eye_sect, right_eye, left_eye = classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, last_eye, numLeft, numRight)
                 if eye_sect is not None:
                     last_eye = eye_sect
 
