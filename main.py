@@ -8,7 +8,6 @@ from animation import Character, init_Character, get_pupil_pos, generate_frame
 # If draw is false or not given, returns the eyes given by the cascade and the input image
 # If draw is true then the image has the eye bounding boxes drawn on it
 def detectEyes(image, cascade, draw=False):
-    # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray_image = image
     eyes = cascade.detectMultiScale(gray_image)
     if(draw):
@@ -18,34 +17,23 @@ def detectEyes(image, cascade, draw=False):
 
 
 # takes a bgrImage, a morphology kernel, and an optional parameter run
-# Transforms the image to binary using otsu method
+# Transforms the image to binary using cvtColor, thresholding, and closing/opening morphologies
 def binaryMorphology(eyeImage, kernel, run=True):
     if(run):
         gray_image = cv2.cvtColor(eyeImage, cv2.COLOR_BGR2GRAY)
         _, binaryImg = cv2.threshold(gray_image, 36, 255, cv2.THRESH_BINARY)
         filtered_img = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, kernel)
         filtered_img = cv2.morphologyEx(filtered_img, cv2.MORPH_OPEN, kernel*2)
-        
         return filtered_img
     return eyeImage
 
-# runs cv2.connectedComponentsWithStats
-# then inverts binary image and runs again
-# returns the actual components for normal and inverted
-def getConComps(eyeImage, connected=8):
-    # connected components for white blobs
-    out = cv2.connectedComponentsWithStats(eyeImage, connected)
-    # connected components for former black blobs
-    inverted_img = cv2.bitwise_not(eyeImage)
-    i_out = cv2.connectedComponentsWithStats(inverted_img, connected)
-    return out, i_out
-
-# takes the connected components for normal and inverted image, with optional parameter threshold
-def findTargets(whiteBlobs, blackBlobs, threshold=2.0):
+# takes the connected components for binary image, with optional parameter threshold
+# returns blob centroid with largest area
+def findTargets(blackBlobs, threshold=2.0):
     target = None
     maxArea = -1
     i = 0
-    num, labs, stats, cents = whiteBlobs
+    num, labs, stats, cents = blackBlobs
     for lab in labs:
         if stats[lab][0][4] > maxArea:
             maxArea = stats[lab][0][4]
@@ -59,64 +47,13 @@ def findTargets(whiteBlobs, blackBlobs, threshold=2.0):
 
 # determines if a given point (x,y) is within the topleft, topright, botleft, botright quadrant of the image
 # top left is 0, top right is 1, bottom left is 2, bottom right is 3
-def determineQuadrant(image, point, centerWidth=7):
-    x = point[0]
-    y = point[1]
-    dim = image.shape
-    widthBound = (dim[0] - centerWidth) / 2
-    widthBound2 = widthBound + centerWidth
-    heightBound = (dim[1] - centerWidth) / 2
-    heightBound2 = widthBound + centerWidth
-    vertPose = 1
-    horzPose = 1
-    if x < widthBound:
-        horzPose = 0
-    elif x > widthBound2:
-        horzPose = 2
-    if y < heightBound:
-        vertPose = 0
-    elif y > heightBound2:
-        vertPose = 2
-    return horzPose + 3 * vertPose
 
-def classifyPupils(leftEye, rightEye, debug=False):
-    try:
-        # create a nxn square box filter
-        n = 2
-        kernel = np.ones((n, n), np.uint8)
-        # compute the binary images and perform morphology, run is optional parameter. Skip morphology if run = False
-        binaryLeft = binaryMorphology(leftEye, kernel, run=True)
-        binaryRight = binaryMorphology(rightEye, kernel, run=True)
+# takes in targets and returrns the region of the pupil
+def classifyPupil(image, point, centerWidth=7):
+    return
 
-        if debug: # show the binary images if debug mode is on
-            cv2.imshow("binaryLeft", binaryLeft)
-            cv2.imshow("binaryRight", binaryRight)
-
-        # compute where the connected components are
-        leftWhite, leftBlack = getConComps(binaryLeft, connected=8)
-        rightWhite, rightBlack = getConComps(binaryRight, connected=8)
-
-        # compute where two points match within a given threshold and return them as a possible target
-        possibleLeftTargets, minLeft = findPossibleTargets(leftWhite, leftBlack, threshold=2.0)
-        possibleRightTargets, minRight = findPossibleTargets(rightWhite, rightBlack, threshold=2.0)
-
-        # get the smallest distance as our best option for the pupil
-        bestLeftTarget = possibleLeftTargets[minLeft]
-        bestRightTarget = possibleRightTargets[minRight]
-
-        #determines the quadrant of each pupil
-        centerWidth = 15
-        leftQuadrant = determineQuadrant(leftEye, bestLeftTarget, centerWidth=centerWidth)
-        rightQuadrant = determineQuadrant(rightEye, bestRightTarget, centerWidth=centerWidth)
-
-        if debug:
-            print("Quadrants -> left: {}, right: {}".format(leftQuadrant, rightQuadrant))
-
-        return (leftQuadrant, rightQuadrant)
-    except:
-        return (4, 4)
-
-# takes image and face classifier, returns image cropped to first face and it's relational properties
+# takes image and face classifier,
+# returns image cropped to first face and it's relational properties
 def crop2Face(image, cascade):
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     faces = cascade.detectMultiScale(gray_image)
@@ -130,7 +67,8 @@ def crop2Face(image, cascade):
     else:
         return None, None
 
-# takes face image and eye data from classifier (output of detectEyes()), returns best guess image of left eye and right eye
+# takes face image and eye data from classifier (output of detectEyes()),
+# returns best guess image of left eye and right eye
 def crop2Eyes(image, eyes):
     height, width, _ = image.shape
     if eyes is not ():
@@ -141,6 +79,7 @@ def crop2Eyes(image, eyes):
             y = eye[1]
             w = eye[2]
             h = eye[3]
+            # only consider eyes in the upper part of the image
             if y < 2*height/5:
                 if np.sum(right_eye) == 0 and x > width/2:
                     right_eye = image[y + int(h*0.2): y + h, x:x + w]
@@ -148,41 +87,36 @@ def crop2Eyes(image, eyes):
                     left_eye = image[y + int(h*0.2): y + h, x:x + w]
 
         if np.sum(right_eye) == 0:
-            right_eye = image
+            right_eye = None
             print("No right eye detected!")
         if np.sum(left_eye) == 0:
-            left_eye = image
+            left_eye = None
             print("No left eye detected!")
         return left_eye, right_eye
     else:
         return None, None
 
-def resizeFaceImage(face_image, scale_percent):
-    width = int(face_image.shape[1] * scale_percent / 100)
-    height = int(face_image.shape[0] * scale_percent / 100)
-    dim = (width, height)
-
-    resized = cv2.resize(face_image, dim, interpolation=cv2.INTER_AREA)
-    return resized
-
 
 def main():
-    #Initialize paths for haarcascade detection
+    # Initialize paths for haarcascade detection
     face_path = os.path.join(sys.path[0], "data/haarcascade_frontalface_default.xml")
     face_detector = cv2.CascadeClassifier(face_path)
     eye_path = os.path.join(sys.path[0], "data/haarcascade_eye.xml")
     eye_detector = cv2.CascadeClassifier(eye_path)
 
     # camera to videocapture from webcam
-    camera = cv2.VideoCapture(1)
+    camera = cv2.VideoCapture(0)
     got_image, bgr_image = camera.read()
     use_delay = False
+    # if no webcam detected (also maybe add command line option) then use video input instead
     if not got_image:
         camera = cv2.VideoCapture("output.avi")
         use_delay = True
 
+    got_image, bgr_image = camera.read()
     image_height, image_width, _ = bgr_image.shape
 
+    # for creating images for demo
     fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
     video_path = os.path.join(sys.path[0], "face.avi")
     face_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
@@ -227,12 +161,11 @@ def main():
         if not got_image:
             sys.exit()
 
-        cv2.imshow("camera feed", bgr_image)
+        # cv2.imshow("camera feed", bgr_image) # window for camera feed
         
         face_image, faces = crop2Face(bgr_image, face_detector)
         if face_image is not None and faces is not None:
-            
-            cv2.imshow("face image", face_image)
+            # cv2.imshow("face image", face_image) # window for cropped face
             gray_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2GRAY)
             eyes, eye_image = detectEyes(gray_image, eye_detector, draw=False)
             right_eye, left_eye = crop2Eyes(face_image, eyes)
@@ -242,35 +175,45 @@ def main():
                 left_eye = cv2.resize(left_eye, (image_width, image_height), interpolation= cv2.INTER_CUBIC)
             except Exception:
                 print(Exception)
+                print("could not upscale eye images")
                 continue
     
-            cv2.imshow("left eye", left_eye)
-            cv2.imshow("right eye", right_eye)
+            # # windows for eyes
+            # cv2.imshow("left eye", left_eye) 
+            # cv2.imshow("right eye", right_eye)
 
-            if right_eye is not None and left_eye is not None:       
-                face_image = cv2.resize(face_image, (image_width, image_height), interpolation= cv2.INTER_CUBIC)
+            # if both eyes are detected
+            # TODO: expand options for single eye use if one is obstructed
+            if right_eye is not None and left_eye is not None:     
+                # for creating demo videos  
+                face_image = cv2.resize(face_image, (image_width, image_height), interpolation= cv2.INTER_CUBIC) # upscale face image
                 face_videoWriter.write(face_image)
+
                 n = 8
                 kernel = np.ones((n, n), np.uint8)
-                # compute the binary images and perform morphology, run is optional parameter. Skip morphology if run = False
-                binaryRight = binaryMorphology(right_eye, kernel, run=True)
-                binaryLeft = binaryMorphology(left_eye, kernel, run=True)
+                # compute the binary images and perform morphology
+                binaryRight = binaryMorphology(right_eye, kernel)
+                binaryLeft = binaryMorphology(left_eye, kernel)
                
-                cv2.imshow("morph left eye", binaryLeft)
-                cv2.imshow("morph right eye", binaryRight)
+                # cv2.imshow("morph left eye", binaryLeft) # window for binary eye
+                # cv2.imshow("morph right eye", binaryRight) # window for binary eye
                 bleye_img = cv2.cvtColor(binaryLeft, cv2.COLOR_GRAY2BGR)
-                bleye_videoWriter.write(bleye_img)
+                bleye_videoWriter.write(bleye_img) # for creating demo videos  
                 breye_img = cv2.cvtColor(binaryRight, cv2.COLOR_GRAY2BGR)
-                breye_videoWriter.write(breye_img)
+                breye_videoWriter.write(breye_img) # for creating demo videos  
 
                 # compute where the connected components are
-                rightWhite, rightBlack = getConComps(binaryRight, connected=8)
-                leftWhite, leftBlack = getConComps(binaryLeft, connected=8)
+                rightWhite = cv2.connectedComponentsWithStats(binaryRight, connectivity=8)
+                leftWhite = cv2.connectedComponentsWithStats(binaryLeft, connectivity=8)
 
                 # compute where two points match within a given threshold and return them as a possible target
-                possibleRightTarget = findTargets(rightWhite, rightBlack, threshold=2.0)
-                possibleLeftTarget = findTargets(leftWhite, leftBlack, threshold=2.0)
+                possibleRightTarget = findTargets(rightWhite, threshold=2.0)
+                possibleLeftTarget = findTargets(leftWhite, threshold=2.0)
 
+
+                # TO PUT INTO FUNCTION
+                # simply draw circles on the possible detected pupils
+                # TODO: remove issue of findTargets returning NaN instead of None
                 if possibleRightTarget is not None and possibleRightTarget.any != np.NaN:
                     try:
                         cv2.circle(right_eye, (int(possibleRightTarget[0]), int(possibleRightTarget[1])), 20, (0, 0, 255, 255), 1)
@@ -282,20 +225,21 @@ def main():
                     except Exception:
                         None
 
-                # cv2.putText(right_eye, str(eyeQuads[0]), (20, 55), color=(0, 0, 255, 255),
-                #             fontFace=1,  fontScale=5.5, thickness=2)
-
+                # draw funny little lines on right eye (for classification regions)
+                # TODO: integrate into function with actual region definition
                 cv2.line(right_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
                
                 cv2.line(right_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
                 cv2.line(right_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
 
-
+                # draw funny little lines on left eye (for classification regions)
                 cv2.line(left_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
                
                 cv2.line(left_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
                 cv2.line(left_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
 
+                # classification region
+                # TODO: integrate into function with drawn lines
                 eye_sect = lasteye
                 if (possibleLeftTarget[1] < image_height*13/32):
                     if (possibleLeftTarget[0] < image_width*15/32):
@@ -313,21 +257,24 @@ def main():
                         eye_sect = 4
 
                 lasteye = eye_sect
+                # END TO PUT INTO FUNCTION
+
+
+                # pass through functions from animation.py to get frame of animation
                 attributes[2] = get_pupil_pos(eye_sect)
                 image = generate_frame(c, scale, attributes, images)
 
-
-                cv2.imshow("output.png", image)
+                cv2.imshow("Character", image) # window for character animation
                 
-                cv2.imshow("testR", right_eye)
-                cv2.imshow("testL", left_eye)
-                leye_videoWriter.write(left_eye)
-                reye_videoWriter.write(right_eye)
+                # TODO: integrate into function for classification and drawing 
+                cv2.imshow("testR", right_eye) # window for right color right eye with drawn regions
+                cv2.imshow("testL", left_eye) # window for left color left eye with drawn regions
+                leye_videoWriter.write(left_eye) # for creating demo videos  
+                reye_videoWriter.write(right_eye) # for creating demo videos  
 
-                # image_width, image_height, _ = image.shape
+                # character animation demo video
                 image = cv2.resize(image, (int(image_width/2), image_height), interpolation= cv2.INTER_CUBIC)
                 character_videoWriter.write(image)
-
 
             key_pressed = cv2.waitKey(10) & 0xFF
             if key_pressed == 27:
@@ -336,7 +283,7 @@ def main():
                 time.sleep(.1)
 
 
-    #after exiting while loop, read images in array and convert to video
+    #after exiting while loop, convert to video
 
     print("all done")
     face_videoWriter.release()
