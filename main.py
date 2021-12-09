@@ -21,7 +21,7 @@ def detectEyes(image, cascade, draw=False):
 def binaryMorphology(eyeImage, kernel, run=True):
     if(run):
         gray_image = cv2.cvtColor(eyeImage, cv2.COLOR_BGR2GRAY)
-        _, binaryImg = cv2.threshold(gray_image, 36, 255, cv2.THRESH_BINARY)
+        _, binaryImg = cv2.threshold(gray_image, 30, 255, cv2.THRESH_BINARY)
         filtered_img = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, kernel)
         filtered_img = cv2.morphologyEx(filtered_img, cv2.MORPH_OPEN, kernel*2)
         return filtered_img
@@ -49,8 +49,53 @@ def findTargets(blackBlobs, threshold=2.0):
 # top left is 0, top right is 1, bottom left is 2, bottom right is 3
 
 # takes in targets and returrns the region of the pupil
-def classifyPupil(image, point, centerWidth=7):
-    return
+def classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, last_eye):
+    image_height, image_width, _ = left_eye.shape
+    # simply draw circles on the possible detected pupils
+    # TODO: remove issue of findTargets returning NaN instead of None
+    if possibleRightTarget is not None and possibleRightTarget.any != np.NaN:
+        try:
+            cv2.circle(right_eye, (int(possibleRightTarget[0]), int(possibleRightTarget[1])), 20, (0, 0, 255, 255), 1)
+        except Exception:
+            None
+    if possibleLeftTarget is not None and possibleLeftTarget.any != np.NaN:
+        try:
+            cv2.circle(left_eye, (int(possibleLeftTarget[0]), int(possibleLeftTarget[1])), 20, (0, 0, 255, 255), 1)
+        except Exception:
+            None
+
+    # draw funny little lines on right eye (for classification regions)
+    # TODO: integrate into function with actual region definition
+    cv2.line(right_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
+    
+    cv2.line(right_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
+    cv2.line(right_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
+
+    # draw funny little lines on left eye (for classification regions)
+    cv2.line(left_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
+    
+    cv2.line(left_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
+    cv2.line(left_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
+
+    # classification region
+    # TODO: integrate into function with drawn lines
+    eye_sect = last_eye
+    if (possibleLeftTarget[1] < image_height*13/32):
+        if (possibleLeftTarget[0] < image_width*15/32):
+            eye_sect = 0
+        elif (possibleLeftTarget[0] > image_width*10/16):
+            eye_sect = 2
+        else:
+            eye_sect = 1
+    else:
+        if (possibleLeftTarget[0] < image_width*15/32):
+            eye_sect = 3
+        elif (possibleLeftTarget[0] > image_width*10/16):
+            eye_sect = 5
+        else:
+            eye_sect = 4
+
+    return eye_sect, right_eye, left_eye
 
 # takes image and face classifier,
 # returns image cropped to first face and it's relational properties
@@ -155,7 +200,7 @@ def main():
     images = []
 
     last_face = None
-    lasteye = 4
+    last_eye = 4
     while True:
         got_image, bgr_image = camera.read()
         if not got_image:
@@ -195,8 +240,8 @@ def main():
                 binaryRight = binaryMorphology(right_eye, kernel)
                 binaryLeft = binaryMorphology(left_eye, kernel)
                
-                # cv2.imshow("morph left eye", binaryLeft) # window for binary eye
-                # cv2.imshow("morph right eye", binaryRight) # window for binary eye
+                cv2.imshow("morph left eye", binaryLeft) # window for binary eye
+                cv2.imshow("morph right eye", binaryRight) # window for binary eye
                 bleye_img = cv2.cvtColor(binaryLeft, cv2.COLOR_GRAY2BGR)
                 bleye_videoWriter.write(bleye_img) # for creating demo videos  
                 breye_img = cv2.cvtColor(binaryRight, cv2.COLOR_GRAY2BGR)
@@ -211,57 +256,12 @@ def main():
                 possibleLeftTarget = findTargets(leftWhite, threshold=2.0)
 
 
-                # TO PUT INTO FUNCTION
-                # simply draw circles on the possible detected pupils
-                # TODO: remove issue of findTargets returning NaN instead of None
-                if possibleRightTarget is not None and possibleRightTarget.any != np.NaN:
-                    try:
-                        cv2.circle(right_eye, (int(possibleRightTarget[0]), int(possibleRightTarget[1])), 20, (0, 0, 255, 255), 1)
-                    except Exception:
-                        None
-                if possibleLeftTarget is not None and possibleLeftTarget.any != np.NaN:
-                    try:
-                        cv2.circle(left_eye, (int(possibleLeftTarget[0]), int(possibleLeftTarget[1])), 20, (0, 0, 255, 255), 1)
-                    except Exception:
-                        None
-
-                # draw funny little lines on right eye (for classification regions)
-                # TODO: integrate into function with actual region definition
-                cv2.line(right_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
-               
-                cv2.line(right_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
-                cv2.line(right_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
-
-                # draw funny little lines on left eye (for classification regions)
-                cv2.line(left_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
-               
-                cv2.line(left_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
-                cv2.line(left_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
-
-                # classification region
-                # TODO: integrate into function with drawn lines
-                eye_sect = lasteye
-                if (possibleLeftTarget[1] < image_height*13/32):
-                    if (possibleLeftTarget[0] < image_width*15/32):
-                        eye_sect = 0
-                    elif (possibleLeftTarget[0] > image_width*10/16):
-                        eye_sect = 2
-                    else:
-                        eye_sect = 1
-                else:
-                    if (possibleLeftTarget[0] < image_width*15/32):
-                        eye_sect = 3
-                    elif (possibleLeftTarget[0] > image_width*10/16):
-                        eye_sect = 5
-                    else:
-                        eye_sect = 4
-
-                lasteye = eye_sect
-                # END TO PUT INTO FUNCTION
-
+                eye_sect, right_eye, left_eye = classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, last_eye)
+                if eye_sect is not None:
+                    last_eye = eye_sect
 
                 # pass through functions from animation.py to get frame of animation
-                attributes[2] = get_pupil_pos(eye_sect)
+                attributes[2] = get_pupil_pos(last_eye)
                 image = generate_frame(c, scale, attributes, images)
 
                 cv2.imshow("Character", image) # window for character animation
