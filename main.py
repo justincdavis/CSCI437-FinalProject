@@ -64,13 +64,15 @@ def classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, 
 
     # draw funny little lines on right eye (for classification regions)
     # TODO: integrate into function with actual region definition
-    cv2.line(right_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
+    cv2.line(right_eye, (0, int(image_height*13/32)), (int(image_width/2), int(image_height*11/32)), (0, 0, 255, 255), 1)
+    cv2.line(right_eye, (int(image_width/2), int(image_height*11/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
 
     cv2.line(right_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
     cv2.line(right_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
 
     # draw funny little lines on left eye (for classification regions)
-    cv2.line(left_eye, (0, int(image_height*13/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
+    cv2.line(left_eye, (0, int(image_height*13/32)), (int(image_width/2), int(image_height*11/32)), (0, 0, 255, 255), 1)
+    cv2.line(left_eye, (int(image_width/2), int(image_height*11/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
 
     cv2.line(left_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
     cv2.line(left_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
@@ -85,21 +87,36 @@ def classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, 
         bestTarget = possibleLeftTarget
 
     eye_sect = last_eye
-    if (bestTarget[1] < image_height*13/32):
-        if (bestTarget[0] < image_width*15/32):
-            eye_sect = 0
-        elif (bestTarget[0] > image_width*10/16):
-            eye_sect = 2
+    if bestTarget[0] < image_width/2:
+        if (bestTarget[1] < image_height*11/32 + image_width*13/11):
+            if (bestTarget[0] < image_width*15/32):
+                eye_sect = 0
+            elif (bestTarget[0] > image_width*10/16):
+                eye_sect = 2
+            else:
+                eye_sect = 1
         else:
-            eye_sect = 1
+            if (bestTarget[0] < image_width*15/32):
+                eye_sect = 3
+            elif (bestTarget[0] > image_width*10/16):
+                eye_sect = 5
+            else:
+                eye_sect = 4
     else:
-        if (bestTarget[0] < image_width*15/32):
-            eye_sect = 3
-        elif (bestTarget[0] > image_width*10/16):
-            eye_sect = 5
+        if (bestTarget[1] < image_height*13/32 - (image_width-image_width/2)*13/11):
+            if (bestTarget[0] < image_width*15/32):
+                eye_sect = 0
+            elif (bestTarget[0] > image_width*10/16):
+                eye_sect = 2
+            else:
+                eye_sect = 1
         else:
-            eye_sect = 4
-
+            if (bestTarget[0] < image_width*15/32):
+                eye_sect = 3
+            elif (bestTarget[0] > image_width*10/16):
+                eye_sect = 5
+            else:
+                eye_sect = 4
     return eye_sect, right_eye, left_eye
 
 # takes image and face classifier,
