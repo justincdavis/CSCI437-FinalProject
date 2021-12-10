@@ -18,14 +18,12 @@ def detectEyes(image, cascade, draw=False):
 
 # takes a bgrImage, a morphology kernel, and an optional parameter run
 # Transforms the image to binary using cvtColor, thresholding, and closing/opening morphologies
-def binaryMorphology(eyeImage, kernel, run=True):
-    if(run):
-        gray_image = cv2.cvtColor(eyeImage, cv2.COLOR_BGR2GRAY)
-        _, binaryImg = cv2.threshold(gray_image, 30, 255, cv2.THRESH_BINARY)
-        filtered_img = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, kernel)
-        filtered_img = cv2.morphologyEx(filtered_img, cv2.MORPH_OPEN, kernel*2)
-        return filtered_img
-    return eyeImage
+def binaryMorphology(eyeImage, kernel, thresh=30):
+    gray_image = cv2.cvtColor(eyeImage, cv2.COLOR_BGR2GRAY)
+    _, binaryImg = cv2.threshold(gray_image, thresh, 255, cv2.THRESH_BINARY)
+    filtered_img = cv2.morphologyEx(binaryImg, cv2.MORPH_CLOSE, kernel)
+    filtered_img = cv2.morphologyEx(filtered_img, cv2.MORPH_OPEN, kernel*2)
+    return filtered_img
 
 # takes the connected components for binary image, with optional parameter threshold
 # returns blob centroid with largest area
@@ -148,6 +146,19 @@ def crop2Eyes(image, eyes):
     else:
         return None, None
 
+def adaptiveMorphology(bgr_eye, kernel, stepSize=4, threshold=235):
+    # print("Starting classification")
+    for i in range(150):
+        i += stepSize
+        binary_eye = binaryMorphology(bgr_eye, kernel, thresh=(150-i))
+        binarySum = np.sum(binary_eye)
+        ratio = binarySum / binary_eye.size
+        # print("Binary sum: {},     Binary ratio: {},    Size: {}".format(binarySum, ratio, binary_eye.size))
+        if ratio > threshold:
+            # print("Finished")
+            return binary_eye
+    # print("Finished")
+    return binaryMorphology(bgr_eye, kernel)
 
 def main():
     # Initialize paths for haarcascade detection
@@ -244,8 +255,8 @@ def main():
                 n = 8
                 kernel = np.ones((n, n), np.uint8)
                 # compute the binary images and perform morphology
-                binaryRight = binaryMorphology(right_eye, kernel)
-                binaryLeft = binaryMorphology(left_eye, kernel)
+                binaryRight = adaptiveMorphology(right_eye, kernel)
+                binaryLeft = adaptiveMorphology(left_eye, kernel)
                
                 cv2.imshow("morph left eye", binaryLeft) # window for binary eye
                 cv2.imshow("morph right eye", binaryRight) # window for binary eye
