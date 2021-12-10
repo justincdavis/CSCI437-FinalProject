@@ -79,8 +79,10 @@ def classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, 
 
     # classification region
     # TODO: integrate into function with drawn lines
-    if numRight > numLeft:
+    if numRight < numLeft and numRight != 0:
         bestTarget = possibleRightTarget
+    elif numLeft != 0:
+        bestTarget = possibleLeftTarget
     else:
         bestTarget = possibleLeftTarget
 
