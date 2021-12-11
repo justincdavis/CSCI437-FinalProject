@@ -4,6 +4,10 @@ import sys, os, time
 from PIL import Image
 from animation import Character, init_Character, get_pupil_pos, generate_frame
 
+save_videos = False
+save_images = False # Only use briefly since it rewrites images every frame
+display_steps = True
+
 # Takes a bgr opencv image, the eye detector cascade, and an optional draw
 # If draw is false or not given, returns the eyes given by the cascade and the input image
 # If draw is true then the image has the eye bounding boxes drawn on it
@@ -185,7 +189,7 @@ def main():
     eye_detector = cv2.CascadeClassifier(eye_path)
 
     # camera to videocapture from webcam
-    camera = cv2.VideoCapture(1)
+    camera = cv2.VideoCapture(0)
     got_image, bgr_image = camera.read()
     use_delay = False
     # if no webcam detected (also maybe add command line option) then use video input instead
@@ -197,35 +201,36 @@ def main():
     image_height, image_width, _ = bgr_image.shape
 
     # for creating images for demo
-    fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-    video_path = os.path.join(sys.path[0], "face.avi")
-    face_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
-                                  frameSize=(image_width, image_height))
+    if save_videos:
+        fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
+        video_path = os.path.join(sys.path[0], "face.avi")
+        face_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
+                                    frameSize=(image_width, image_height))
 
-    fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-    video_path = os.path.join(sys.path[0], "reye.avi")
-    reye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
-                                  frameSize=(image_width, image_height))
+        fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
+        video_path = os.path.join(sys.path[0], "reye.avi")
+        reye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
+                                    frameSize=(image_width, image_height))
 
-    fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-    video_path = os.path.join(sys.path[0], "leye.avi")
-    leye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
-                                  frameSize=(image_width, image_height))
+        fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
+        video_path = os.path.join(sys.path[0], "leye.avi")
+        leye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
+                                    frameSize=(image_width, image_height))
 
-    fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-    video_path = os.path.join(sys.path[0], "breye.avi")
-    breye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
-                                  frameSize=(image_width, image_height))
+        fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
+        video_path = os.path.join(sys.path[0], "breye.avi")
+        breye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
+                                    frameSize=(image_width, image_height))
 
-    fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-    video_path = os.path.join(sys.path[0], "bleye.avi")
-    bleye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
-                                  frameSize=(image_width, image_height))
+        fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
+        video_path = os.path.join(sys.path[0], "bleye.avi")
+        bleye_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
+                                    frameSize=(image_width, image_height))
 
-    fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
-    video_path = os.path.join(sys.path[0], "character.avi")
-    character_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
-                                  frameSize=(int(image_width/2), image_height))
+        fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
+        video_path = os.path.join(sys.path[0], "character.avi")
+        character_videoWriter = cv2.VideoWriter(video_path, fourcc=fourcc, fps=10.0,
+                                    frameSize=(int(image_width/2), image_height))
 
     # create character object and variables for drawing the character
     c = Character(init_Character())
@@ -241,14 +246,26 @@ def main():
         if not got_image:
             sys.exit()
 
-        # cv2.imshow("camera feed", bgr_image) # window for camera feed
+        if display_steps:
+            cv2.imshow("camera feed", bgr_image) # window for camera feed
+        if save_images:
+            impath= os.path.join(sys.path[0], "Images/full.png")
+            cv2.imwrite(impath, bgr_image)
         
         face_image, faces = crop2Face(bgr_image, face_detector)
         if face_image is not None and faces is not None:
-            # cv2.imshow("face image", face_image) # window for cropped face
+            if display_steps:
+                cv2.imshow("face image", face_image) # window for cropped face
+            if save_images:
+                impath= os.path.join(sys.path[0], "Images/cropped_face.png")
+                cv2.imwrite(impath, face_image)
             gray_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2GRAY)
             eyes, eye_image = detectEyes(gray_image, eye_detector, draw=False)
             right_eye, left_eye = crop2Eyes(face_image, eyes)
+
+            if save_images:
+                impath= os.path.join(sys.path[0], "Images/left_eye.png")
+                cv2.imwrite(impath, left_eye)
 
             try:
                 right_eye = cv2.resize(right_eye, (image_width, image_height), interpolation= cv2.INTER_CUBIC)
@@ -259,15 +276,20 @@ def main():
                 continue
     
             # # windows for eyes
-            # cv2.imshow("left eye", left_eye) 
-            # cv2.imshow("right eye", right_eye)
+            if display_steps:
+                cv2.imshow("left eye", left_eye) 
+                cv2.imshow("right eye", right_eye)
+            if save_images:
+                temp_left = cv2.cvtColor(left_eye, cv2.COLOR_BGR2GRAY)
+                impath= os.path.join(sys.path[0], "Images/left_eye_upscale.png")
+                cv2.imwrite(impath, temp_left)
 
             # if both eyes are detected
-            # TODO: expand options for single eye use if one is obstructed
             if right_eye is not None and left_eye is not None:     
-                # for creating demo videos  
-                face_image = cv2.resize(face_image, (image_width, image_height), interpolation= cv2.INTER_CUBIC) # upscale face image
-                face_videoWriter.write(face_image)
+                # for creating demo videos
+                if save_videos:
+                    face_image = cv2.resize(face_image, (image_width, image_height), interpolation= cv2.INTER_CUBIC) # upscale face image
+                    face_videoWriter.write(face_image)
 
                 n = 8
                 kernel = np.ones((n, n), np.uint8)
@@ -275,12 +297,17 @@ def main():
                 binaryRight = adaptiveMorphology(right_eye, kernel)
                 binaryLeft = adaptiveMorphology(left_eye, kernel)
                
-                cv2.imshow("morph left eye", binaryLeft) # window for binary eye
-                cv2.imshow("morph right eye", binaryRight) # window for binary eye
+                if display_steps:
+                    cv2.imshow("morph left eye", binaryLeft) # window for binary eye
+                    cv2.imshow("morph right eye", binaryRight) # window for binary eye
                 bleye_img = cv2.cvtColor(binaryLeft, cv2.COLOR_GRAY2BGR)
-                bleye_videoWriter.write(bleye_img) # for creating demo videos  
                 breye_img = cv2.cvtColor(binaryRight, cv2.COLOR_GRAY2BGR)
-                breye_videoWriter.write(breye_img) # for creating demo videos  
+                if save_videos:
+                    bleye_videoWriter.write(bleye_img) # for creating demo videos  
+                    breye_videoWriter.write(breye_img) # for creating demo videos  
+                if save_images:
+                    impath= os.path.join(sys.path[0], "Images/left_eye_morphology.png")
+                    cv2.imwrite(impath, bleye_img)
 
                 # compute where the connected components are
                 rightWhite = cv2.connectedComponentsWithStats(binaryRight, connectivity=8)
@@ -300,17 +327,28 @@ def main():
                 attributes[2] = get_pupil_pos(last_eye)
                 image = generate_frame(c, scale, attributes, images)
 
-                cv2.imshow("Character", image) # window for character animation
                 
-                # TODO: integrate into function for classification and drawing 
-                cv2.imshow("testR", right_eye) # window for right color right eye with drawn regions
-                cv2.imshow("testL", left_eye) # window for left color left eye with drawn regions
-                leye_videoWriter.write(left_eye) # for creating demo videos  
-                reye_videoWriter.write(right_eye) # for creating demo videos  
+                cv2.imshow("Character", image) # window for character animation
+
+                if save_images:
+                    impath= os.path.join(sys.path[0], "Images/character.png")
+                    cv2.imwrite(impath, image)
+                
+                if display_steps:
+                    cv2.imshow("testR", right_eye) # window for right color right eye with drawn regions
+                    cv2.imshow("testL", left_eye) # window for left color left eye with drawn regions
+                if save_videos:
+                    leye_videoWriter.write(left_eye) # for creating demo videos  
+                    reye_videoWriter.write(right_eye) # for creating demo videos  
+                if save_images:
+                    impath= os.path.join(sys.path[0], "Images/left_eye_regions.png")
+                    cv2.imwrite(impath, left_eye)
+
 
                 # character animation demo video
-                image = cv2.resize(image, (int(image_width/2), image_height), interpolation= cv2.INTER_CUBIC)
-                character_videoWriter.write(image)
+                if save_videos:
+                    image = cv2.resize(image, (int(image_width/2), image_height), interpolation= cv2.INTER_CUBIC)
+                    character_videoWriter.write(image)
 
             key_pressed = cv2.waitKey(10) & 0xFF
             if key_pressed == 27:
@@ -322,12 +360,13 @@ def main():
     #after exiting while loop, convert to video
 
     print("all done")
-    face_videoWriter.release()
-    reye_videoWriter.release()
-    leye_videoWriter.release()
-    breye_videoWriter.release()
-    bleye_videoWriter.release()
-    character_videoWriter.release()
+    if save_videos:
+        face_videoWriter.release()
+        reye_videoWriter.release()
+        leye_videoWriter.release()
+        breye_videoWriter.release()
+        bleye_videoWriter.release()
+        character_videoWriter.release()
 
 
 if __name__ == "__main__":
