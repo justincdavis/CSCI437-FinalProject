@@ -6,7 +6,7 @@ from animation import Character, init_Character, get_pupil_pos, generate_frame
 
 save_videos = False
 save_images = False # Only use briefly since it rewrites images every frame
-display_steps = True
+display_steps = False
 
 # Takes a bgr opencv image, the eye detector cascade, and an optional draw
 # If draw is false or not given, returns the eyes given by the cascade and the input image
@@ -67,7 +67,6 @@ def classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, 
             None
 
     # draw funny little lines on right eye (for classification regions)
-    # TODO: integrate into function with actual region definition
     cv2.line(right_eye, (0, int(image_height*13/32)), (int(image_width/2), int(image_height*11/32)), (0, 0, 255, 255), 1)
     cv2.line(right_eye, (int(image_width/2), int(image_height*11/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
 
@@ -82,7 +81,6 @@ def classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, 
     cv2.line(left_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
 
     # classification region
-    # TODO: integrate into function with drawn lines
     if numRight < numLeft and numRight != 0:
         bestTarget = possibleRightTarget
     elif numLeft != 0:
@@ -167,7 +165,7 @@ def crop2Eyes(image, eyes):
     else:
         return None, None
 
-def adaptiveMorphology(bgr_eye, kernel, stepSize=12, threshold=235):
+def adaptiveMorphology(bgr_eye, kernel, stepSize=8, threshold=238):
     # print("Starting classification")
     for i in range(150):
         i += stepSize
@@ -246,8 +244,8 @@ def main():
         if not got_image:
             sys.exit()
 
-        if display_steps:
-            cv2.imshow("camera feed", bgr_image) # window for camera feed
+        
+        cv2.imshow("camera feed", bgr_image) # window for camera feed
         if save_images:
             impath= os.path.join(sys.path[0], "Images/full.png")
             cv2.imwrite(impath, bgr_image)
