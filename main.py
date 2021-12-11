@@ -167,7 +167,7 @@ def crop2Eyes(image, eyes):
     else:
         return None, None
 
-def adaptiveMorphology(bgr_eye, kernel, stepSize=4, threshold=235):
+def adaptiveMorphology(bgr_eye, kernel, stepSize=12, threshold=235):
     # print("Starting classification")
     for i in range(150):
         i += stepSize
