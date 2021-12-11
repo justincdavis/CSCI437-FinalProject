@@ -4,9 +4,9 @@ import sys, os, time
 from PIL import Image
 from animation import Character, init_Character, get_pupil_pos, generate_frame
 
-save_videos = False
+save_videos = True
 save_images = False # Only use briefly since it rewrites images every frame
-display_steps = False
+display_steps = True
 
 # Takes a bgr opencv image, the eye detector cascade, and an optional draw
 # If draw is false or not given, returns the eyes given by the cascade and the input image
@@ -66,19 +66,29 @@ def classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, 
         except Exception:
             None
 
-    # draw funny little lines on right eye (for classification regions)
-    cv2.line(right_eye, (0, int(image_height*13/32)), (int(image_width/2), int(image_height*11/32)), (0, 0, 255, 255), 1)
-    cv2.line(right_eye, (int(image_width/2), int(image_height*11/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
+    # classifying regions all WRT x/32
+    # for left eye, NOT automatically mirrored for right, but better this way
+    right_limit = 19
+    left_limit = 15
+    
+    # 
+    lower_left = 18
+    central = 10
+    lower_right = 16
 
-    cv2.line(right_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
-    cv2.line(right_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
+    # draw funny little lines on right eye (for classification regions)
+    cv2.line(right_eye, (0, int(image_height*lower_left/32)), (int(image_width/2), int(image_height*central/32)), (0, 0, 255, 255), 1)
+    cv2.line(right_eye, (int(image_width/2), int(image_height*central/32)), (int(image_width), int(image_height*lower_right/32)), (0, 0, 255, 255), 1)
+
+    cv2.line(right_eye, (int(image_width*left_limit/32), int(0)), (int(image_width*left_limit/32), int(image_height)), (0, 0, 255, 255), 1)
+    cv2.line(right_eye, (int(image_width*right_limit/32), int(0)), (int(image_width*right_limit/32), int(image_height)), (0, 0, 255, 255), 1)
 
     # draw funny little lines on left eye (for classification regions)
-    cv2.line(left_eye, (0, int(image_height*13/32)), (int(image_width/2), int(image_height*11/32)), (0, 0, 255, 255), 1)
-    cv2.line(left_eye, (int(image_width/2), int(image_height*11/32)), (int(image_width), int(image_height*13/32)), (0, 0, 255, 255), 1)
+    cv2.line(left_eye, (0, int(image_height*lower_left/32)), (int(image_width/2), int(image_height*central/32)), (0, 0, 255, 255), 1)
+    cv2.line(left_eye, (int(image_width/2), int(image_height*central/32)), (int(image_width), int(image_height*lower_right/32)), (0, 0, 255, 255), 1)
 
-    cv2.line(left_eye, (int(image_width*15/32), int(0)), (int(image_width*15/32), int(image_height)), (0, 0, 255, 255), 1)
-    cv2.line(left_eye, (int(image_width*10/16), int(0)), (int(image_width*10/16), int(image_height)), (0, 0, 255, 255), 1)
+    cv2.line(left_eye, (int(image_width*left_limit/32), int(0)), (int(image_width*left_limit/32), int(image_height)), (0, 0, 255, 255), 1)
+    cv2.line(left_eye, (int(image_width*right_limit/32), int(0)), (int(image_width*right_limit/32), int(image_height)), (0, 0, 255, 255), 1)
 
     # classification region
     if numRight < numLeft and numRight != 0:
@@ -90,32 +100,32 @@ def classifyPupil(possibleRightTarget, possibleLeftTarget, right_eye, left_eye, 
 
     eye_sect = last_eye
     if bestTarget[0] < image_width/2:
-        if (bestTarget[1] < image_height*11/32 + image_width*13/11):
-            if (bestTarget[0] < image_width*15/32):
+        if (bestTarget[1] < image_height*lower_left/32 - bestTarget[0]*central/lower_left):
+            if (bestTarget[0] < image_width*left_limit/32):
                 eye_sect = 0
-            elif (bestTarget[0] > image_width*10/16):
+            elif (bestTarget[0] > image_width*right_limit/32):
                 eye_sect = 2
             else:
                 eye_sect = 1
         else:
-            if (bestTarget[0] < image_width*15/32):
+            if (bestTarget[0] < image_width*left_limit/32):
                 eye_sect = 3
-            elif (bestTarget[0] > image_width*10/16):
+            elif (bestTarget[0] > image_width*right_limit/32):
                 eye_sect = 5
             else:
                 eye_sect = 4
     else:
-        if (bestTarget[1] < image_height*13/32 - (image_width-image_width/2)*13/11):
-            if (bestTarget[0] < image_width*15/32):
+        if (bestTarget[1] < image_height*central/32 + (bestTarget[0]-image_width/2)*central/lower_right):
+            if (bestTarget[0] < image_width*left_limit/32):
                 eye_sect = 0
-            elif (bestTarget[0] > image_width*10/16):
+            elif (bestTarget[0] > image_width*right_limit/32):
                 eye_sect = 2
             else:
                 eye_sect = 1
         else:
-            if (bestTarget[0] < image_width*15/32):
+            if (bestTarget[0] < image_width*left_limit/32):
                 eye_sect = 3
-            elif (bestTarget[0] > image_width*10/16):
+            elif (bestTarget[0] > image_width*right_limit/32):
                 eye_sect = 5
             else:
                 eye_sect = 4
@@ -165,7 +175,7 @@ def crop2Eyes(image, eyes):
     else:
         return None, None
 
-def adaptiveMorphology(bgr_eye, kernel, stepSize=8, threshold=238):
+def adaptiveMorphology(bgr_eye, kernel, stepSize=16, threshold=242):
     # print("Starting classification")
     for i in range(150):
         i += stepSize
