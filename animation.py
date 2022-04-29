@@ -93,7 +93,7 @@ def init_Character():
 
 def convert_opencv(image):
     numpy_image=np.array(image)  
-    opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_BGRA2RGBA)
+    opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_RGBA2BGR)
     return opencv_image
 
 def generate_frame(character, scale, attributes, images_array):
@@ -105,7 +105,7 @@ def generate_frame(character, scale, attributes, images_array):
     return opencv_image
 
 def get_pupil_pos(quadrent):
-    quadrent_conversion = [4,3,5,1,7,0,6,2,8]
+    quadrent_conversion = [5,3,7,1,0,2]
     return quadrent_conversion[quadrent]
 
 # scale = 10
